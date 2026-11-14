@@ -1,0 +1,22 @@
+{
+  "siteUrl": "https://alegebanca.ro",
+  "siteName": "alegebanca.ro",
+  "siteTagline": "Comparator independent de credite și carduri din România",
+  "operator": {
+    "name": "[Numele firmei sau al persoanei care operează site-ul]",
+    "cui": "[CUI]",
+    "address": "[Adresa]",
+    "email": "contact@alegebanca.ro"
+  },
+  "adsense": {
+    "client": "",
+    "slots": {
+      "top": "",
+      "inlist": "",
+      "bottom": ""
+    }
+  },
+  "ga4MeasurementId": "",
+  "googleSiteVerification": "",
+  "ogImage": "/assets/og.png"
+}
