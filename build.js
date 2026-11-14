@@ -505,7 +505,6 @@ ${benChips(lounges)}<ul class="cgrid">${cardList(lounges)}</ul><p class="js-empt
     slug: 'politica-de-confidentialitate', top: false, nav: false, navLabel: 'Confidențialitate și cookie-uri', crumb: 'Politica de confidențialitate',
     title: 'Politica de confidențialitate și cookie-uri', desc: 'Ce date colectăm, cum folosim cookie-urile și reclamele Google și ce drepturi ai conform GDPR.', h1Plain: 'Politica de confidențialitate',
     body: p => `<section class="block wrap prose"><h1>Politica de confidențialitate și cookie-uri</h1>
-<p class="callout">Model de pornire: completează datele operatorului și cere verificarea unui jurist înainte de publicare.</p>
 <h2>Operatorul datelor</h2><p>${[esc(C.operator.name), C.operator.type ? esc(C.operator.type) : '', C.operator.cui ? 'CUI ' + esc(C.operator.cui) : '', esc(C.operator.address)].filter(Boolean).join(', ')}. Contact: ${esc(C.operator.email)}.</p>
 <h2>Ce date colectăm</h2><p>Nu cerem nume, telefon sau alte date personale. Simulatoarele rulează doar în browserul tău și nu trimit valorile introduse nicăieri.</p>
 <h2>Cookie-uri și reclame</h2><p>Folosim Google AdSense pentru afișarea reclamelor${C.ga4MeasurementId ? ' și Google Analytics pentru statistici de trafic' : ''}. Google și partenerii săi pot folosi cookie-uri pentru a afișa reclame pe baza vizitelor tale anterioare, pe acest site sau pe alte site-uri. Pentru vizitatorii din SEE, Regatul Unit și Elveția, cerem acordul printr-o platformă de gestionare a consimțământului certificată de Google, înainte de a folosi cookie-uri pentru reclame personalizate. Poți schimba oricând alegerea din linkul „Setări confidențialitate”. Poți afla mai multe la <a href="https://policies.google.com/technologies/ads?hl=ro" rel="noopener">policies.google.com/technologies/ads</a> și poți dezactiva reclamele personalizate din <a href="https://adssettings.google.com" rel="noopener">Setările pentru anunțuri Google</a>.</p>
@@ -515,7 +514,6 @@ ${benChips(lounges)}<ul class="cgrid">${cardList(lounges)}</ul><p class="js-empt
     slug: 'termeni-si-conditii', top: false, nav: false, navLabel: 'Termeni și condiții', crumb: 'Termeni și condiții',
     title: 'Termeni și condiții', desc: 'Condițiile de utilizare a comparatorului de credite și carduri.', h1Plain: 'Termeni și condiții',
     body: p => `<section class="block wrap prose"><h1>Termeni și condiții</h1>
-<p class="callout">Model de pornire: cere verificarea unui jurist înainte de publicare.</p>
 <p>Informațiile de pe ${esc(C.siteName)} au caracter informativ și provin din surse publice. Facem eforturi să le păstrăm corecte și actuale, dar nu garantăm că sunt complete sau la zi în orice moment. Ofertele finale sunt stabilite exclusiv de bănci.</p>
 <p>Site-ul nu oferă consultanță financiară și nu intermediază credite. Înainte de a semna un contract, citește formularul de informații precontractuale primit de la bancă.</p>
 <p>Link-urile către site-urile băncilor duc pe pagini pe care nu le controlăm. Reclamele și link-urile de afiliere sunt marcate ca atare.</p></section>`
