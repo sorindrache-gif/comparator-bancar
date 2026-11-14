@@ -3,9 +3,10 @@
   "siteName": "alegebanca.ro",
   "siteTagline": "Comparator independent de credite și carduri din România",
   "operator": {
-    "name": "[Numele firmei sau al persoanei care operează site-ul]",
-    "cui": "[CUI]",
-    "address": "[Adresa]",
+    "name": "Sorin Drache",
+    "type": "persoană fizică",
+    "cui": "",
+    "address": "Arad, România",
     "email": "contact@alegebanca.ro"
   },
   "adsense": {
