@@ -389,7 +389,7 @@ ${toolbar([['fixedRate', 'Dobândă fixă'], ['fixedYears', 'Ani fix'], ['dae', 
 <section class="block wrap"><h2>Întrebări frecvente</h2>${faqBlock(p.faq)}</section>
 ${related(p.slug)}`,
     faq: [
-      ['Care bancă are cea mai mică dobândă la creditul ipotecar?', bestM[0] ? `Acum, cea mai mică dobândă fixă din comparator este la ${esc(bestM[0].bank)}: ${pc(bestM[0].fixedRate)} fix pe ${bestM[0].fixedYears} ani, apoi ${esc(bestM[0].margin)}.` : '—'],
+      ['Care bancă are cea mai mică dobândă la creditul ipotecar?', bestM[0] ? `Acum, cea mai mică dobândă fixă din comparator este la ${esc(bestM[0].bank)}: ${pc(bestM[0].fixedRate)} fix pe ${bestM[0].fixedYears} ani${bestM[0].margin && bestM[0].margin !== '—' ? ', apoi ' + esc(bestM[0].margin) : ''}.` : '—'],
       ['Ce avans îmi trebuie pentru un credit ipotecar?', 'De regulă minimum 15% pentru prima locuință. Dacă deții deja o locuință, unele bănci cer 25%.'],
       ['Dobândă fixă sau variabilă?', 'Dobânda fixă îți dă rate predictibile în primii ani. Cea variabilă urmează IRCC. Aproape toate ofertele actuale sunt mixte: fixă câțiva ani, apoi variabilă.'],
       ['Ce este IRCC?', 'IRCC este indicele de referință pentru creditele în lei ale consumatorilor, calculat trimestrial de BNR. Dobânda variabilă = IRCC + marja fixă a băncii.']
