@@ -33,11 +33,13 @@ const grad = s => { const g = GRAD[hash(s) % GRAD.length]; return `linear-gradie
 const incomeLei = s => { if (!s) return null; const m = String(s).replace(/\./g, '').match(/(\d{3,6})\s*lei/); if (m) return +m[1]; if (/EUR/i.test(s)) { const e = String(s).match(/(\d{2,5})/); return e ? +e[1] * 5 : null; } return null; };
 
 // URL helpers
-const href = slug => PREVIEW ? (slug === '' ? 'index.html' : slug + '.html') : (slug === '' ? '/' : '/' + slug);
+let PFX = '';
+const fileOf = slug => slug === '' ? 'index.html' : slug.endsWith('/') ? slug + 'index.html' : slug + '.html';
+const href = slug => PREVIEW ? PFX + fileOf(slug) : '/' + slug;
 const canon = slug => SITE + (slug === '' ? '/' : '/' + slug);
-const asset = p => PREVIEW ? 'assets/' + p : '/assets/' + p;
+const asset = p => PREVIEW ? PFX + 'assets/' + p : '/assets/' + p;
 
-const logoTxt = () => { const m = /^(.*?)(\.[a-z]{2,})$/i.exec(C.siteName); return m ? `${esc(m[1])}<span style="color:var(--lav-deep)">${esc(m[2])}</span>` : esc(C.siteName); };
+const logoTxt = () => { const m = /^(.*?)(\.[a-z]{2,})$/i.exec(C.siteName); return m ? `<span>${esc(m[1])}<span style="color:var(--lav-deep)">${esc(m[2])}</span></span>` : `<span>${esc(C.siteName)}</span>`; };
 // ---------------- ads ----------------
 const AD = C.adsense || {}; const adsOn = !!AD.client;
 function ad(slot, extraClass = '') {
@@ -51,9 +53,12 @@ const adInList = () => { const a = ad('inlist', 'ad-inlist'); return a ? `<li cl
 // ---------------- data prep ----------------
 const P = D.personal.map(o => ({ ...o, inc: incomeLei(o.minIncome) }));
 const fresh = arr => arr.filter(o => !o.stale);
-const bestP = fresh(P).filter(o => o.dae != null).sort((a, b) => a.dae - b.dae);
-const bestRate = fresh(P).filter(o => o.rateMin != null).sort((a, b) => a.rateMin - b.rateMin);
-const bestM = fresh(D.mortgage).sort((a, b) => a.fixedRate - b.fixedRate);
+const freshOr = arr => { const f = fresh(arr); return f.length >= 3 ? f : arr; };
+const bestP = freshOr(P).filter(o => o.dae != null).sort((a, b) => a.dae - b.dae);
+const bestRate = freshOr(P).filter(o => o.rateMin != null).sort((a, b) => a.rateMin - b.rateMin);
+const bestM = freshOr(D.mortgage).sort((a, b) => a.fixedRate - b.fixedRate);
+// DAE (IRR lunar anualizat) pentru exemple: sumă, luni, dobândă %, cost inițial, cost lunar
+const daeOf = (P0, n, rate, upfront = 0, monthly = 0) => { const R = pmt(rate, n, P0) + monthly, net = P0 - upfront; let lo = 0, hi = 0.1; for (let k = 0; k < 200; k++) { const m = (lo + hi) / 2; const pv = R * (1 - Math.pow(1 + m, -n)) / m; if (pv > net) lo = m; else hi = m; } return (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100; };
 const lounges = [...D.creditCards.map(c => ({ ...c, kind: 'credit' })), ...D.debitCards.map(c => ({ ...c, kind: 'debit' }))].filter(c => c.benefits.includes('lounge'));
 const offersJson = JSON.stringify(P.map(o => ({ bank: o.bank, rateMin: o.rateMin, dae: o.dae, maxAmount: o.maxAmount, maxMonths: o.maxMonths, stale: !!o.stale }))).replace(/</g, '\\u003c');
 const ctaLink = o => o.affiliateUrl
@@ -144,7 +149,7 @@ function related(cur) {
 // ---------------- page shell ----------------
 function shell(p, body) {
   const url = canon(p.slug);
-  const crumbs = p.slug === '' ? [] : [['Acasă', ''], [p.crumb || p.navLabel || p.h1Plain, p.slug]];
+  const crumbs = p.crumbs || (p.slug === '' ? [] : [['Acasă', ''], [p.crumb || p.navLabel || p.h1Plain, p.slug]]);
   const ld = [];
   ld.push({ '@context': 'https://schema.org', '@type': 'WebPage', '@id': url + '#webpage', url, name: p.title, description: p.desc, inLanguage: 'ro-RO', dateModified: D.updatedAt, isPartOf: { '@id': SITE + '/#website' }, publisher: { '@id': SITE + '/#org' } });
   if (p.slug === '') {
@@ -153,6 +158,7 @@ function shell(p, body) {
   }
   if (crumbs.length) ld.push({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, s], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: canon(s) })) });
   if (p.faq) ld.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: p.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: stripTags(a) } })) });
+  if (p.article) ld.push({ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: p.h1Plain, description: p.desc, inLanguage: 'ro-RO', datePublished: p.article.date, dateModified: D.updatedAt, mainEntityOfPage: url, image: SITE + C.ogImage, author: { '@type': 'Organization', name: C.siteName, url: SITE + '/' }, publisher: { '@id': SITE + '/#org' } });
   if (p.itemList) ld.push({ '@context': 'https://schema.org', '@type': 'ItemList', name: p.h1Plain, numberOfItems: p.itemList.length, itemListElement: p.itemList.map((o, i) => ({ '@type': 'ListItem', position: i + 1, item: o })) });
   const robots = PREVIEW || p.noindex ? 'noindex, nofollow' : 'index, follow, max-snippet:-1, max-image-preview:large';
   return `<!DOCTYPE html>
@@ -165,7 +171,7 @@ function shell(p, body) {
 <meta name="robots" content="${robots}">
 <link rel="canonical" href="${url}">
 <link rel="alternate" hreflang="ro-RO" href="${url}">
-<meta property="og:type" content="website"><meta property="og:locale" content="ro_RO"><meta property="og:site_name" content="${esc(C.siteName)}">
+<meta property="og:type" content="${p.article ? 'article' : 'website'}"><meta property="og:locale" content="ro_RO"><meta property="og:site_name" content="${esc(C.siteName)}">
 <meta property="og:title" content="${esc(p.title)}"><meta property="og:description" content="${esc(p.desc)}"><meta property="og:url" content="${url}"><meta property="og:image" content="${SITE}${C.ogImage}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#b8a4f4">
@@ -193,6 +199,7 @@ ${body}
 <div><a class="logo" href="${href('')}"><i aria-hidden="true">%</i>${logoTxt()}</a><p>${esc(C.siteTagline)}. Date actualizate automat de două ori pe zi. Ultima actualizare: ${esc(updTxt)}.</p></div>
 <div><h2>Credite</h2><ul>${['comparator-credite-nevoi-personale', 'refinantare-credit-nevoi-personale', 'credit-nevoi-personale-usor-de-obtinut', 'calculator-rata-credit', 'credite-ipotecare'].map(s => PAGES.find(x => x.slug === s)).map(x => `<li><a href="${href(x.slug)}">${esc(x.navLong || x.navLabel)}</a></li>`).join('')}</ul></div>
 <div><h2>Carduri</h2><ul>${['carduri-de-credit', 'carduri-de-debit', 'carduri-cu-acces-lounge'].map(s => PAGES.find(x => x.slug === s)).map(x => `<li><a href="${href(x.slug)}">${esc(x.navLong || x.navLabel)}</a></li>`).join('')}</ul></div>
+<div><h2>Ghiduri</h2><ul>${PAGES.filter(x => x.article).slice(0, 5).map(x => `<li><a href="${href(x.slug)}">${esc(x.navLabel)}</a></li>`).join('')}<li><a href="${href('ghiduri/')}"><b>Toate ghidurile →</b></a></li></ul></div>
 <div><h2>Despre</h2><ul>${['despre-si-metodologie', 'politica-de-confidentialitate', 'termeni-si-conditii'].map(s => PAGES.find(x => x.slug === s)).map(x => `<li><a href="${href(x.slug)}">${esc(x.navLong || x.navLabel)}</a></li>`).join('')}</ul></div>
 </div>
 <p class="disc">Informațiile au caracter informativ și provin din surse publice (site-urile băncilor și presa financiară). Nu reprezintă o ofertă fermă, consultanță financiară sau intermediere de credite. Dobânda și DAE pe care le primești depind de analiza băncii. Verifică întotdeauna oferta finală și formularul de informații precontractuale înainte să semnezi. Site-ul poate afișa reclame și link-uri de afiliere marcate ca atare.</p>
@@ -229,7 +236,8 @@ ${podium(bestP, o => pc(o.dae).replace('%', '<small>% DAE</small>'), o => 'dobâ
 <a href="${href('carduri-cu-acces-lounge')}"><b>Un card cu acces în lounge</b><span>Credit și debit, cu intrări gratuite în aeroport.</span></a>
 </div></section>
 <section class="block wrap"><div class="sec-head"><div><span class="tag"><b>02</b> Credite ipotecare</span><h2>Cele mai mici dobânzi <em class="it">fixe</em></h2></div><a class="chip" href="${href('credite-ipotecare')}">Toate ipotecarele →</a></div>
-${podium(bestM, o => pc(o.fixedRate).replace('%', '<small>% fix</small>'), o => o.fixedYears + ' ani fix, apoi ' + esc(o.margin), 'Dobândă fixă')}</section>
+${podium(bestM, o => pc(o.fixedRate).replace('%', '<small>% fix</small>'), o => o.fixedYears + ' ani fix' + (o.margin && o.margin !== '—' ? ', apoi ' + esc(o.margin) : ''), 'Dobândă fixă')}</section>
+<section class="block wrap"><div class="sec-head"><div><span class="tag"><b>03</b> Ghiduri</span><h2>Învață să <em class="it">plătești mai puțin</em></h2></div><a class="chip" href="${href('ghiduri/')}">Toate ghidurile →</a></div><div class="related guides">${ARTS.slice(0, 3).map(artCard).join('')}</div></section>
 <div class="wrap">${ad('bottom')}</div>
 <section class="block wrap"><h2>Întrebări frecvente</h2>${faqBlock(p.faq)}</section>`,
     faq: [
@@ -358,7 +366,7 @@ ${related(p.slug)}`; },
     slug: 'credite-ipotecare', top: true, nav: true, navLabel: 'Ipotecare', navLong: 'Credite ipotecare – dobânzi fixe comparate', crumb: 'Credite ipotecare',
     blurb: 'Dobânzi fixe pe 3, 5 sau 10 ani, marjă și avans.',
     title: `Credite ipotecare ${YEAR} – dobânzi fixe la toate băncile`,
-    desc: `Compară creditele ipotecare: dobânda fixă și cât durează, marja după (IRCC + x), DAE și avansul minim. Cea mai mică dobândă fixă acum: ${bestM[0] ? pc(bestM[0].fixedRate) + ' la ' + bestM[0].bank : '-'}.`,
+    desc: `Dobânda fixă și cât durează, marja după (IRCC + x), DAE și avansul la toate băncile. Cea mai mică dobândă fixă acum: ${bestM[0] ? pc(bestM[0].fixedRate) + ' la ' + bestM[0].bank : '-'}.`,
     h1Plain: 'Credite ipotecare',
     itemList: bestM.map(o => ({ '@type': 'MortgageLoan', name: o.bank + ' – ' + o.product, provider: { '@type': 'BankOrCreditUnion', name: o.bank }, currency: 'RON', interestRate: o.fixedRate, annualPercentageRate: o.dae ?? undefined, url: o.url })),
     body: p => `<section class="hero solo"><div class="wrap grid2"><div>
@@ -368,7 +376,7 @@ ${related(p.slug)}`; },
 <div class="stamp">Actualizat: ${esc(updTxt)} · ${D.mortgage.length} bănci</div></div></div></section>
 <div class="wrap">${ad('top')}</div>
 <section class="block wrap" data-list data-sort="fixedRate">
-${podium(bestM, o => pc(o.fixedRate).replace('%', '<small>% fix</small>'), o => o.fixedYears + ' ani fix, apoi ' + esc(o.margin), 'Dobândă fixă')}
+${podium(bestM, o => pc(o.fixedRate).replace('%', '<small>% fix</small>'), o => o.fixedYears + ' ani fix' + (o.margin && o.margin !== '—' ? ', apoi ' + esc(o.margin) : ''), 'Dobândă fixă')}
 ${toolbar([['fixedRate', 'Dobândă fixă'], ['fixedYears', 'Ani fix'], ['dae', 'DAE'], ['bank', 'A–Z']], [['green', 'Credit verde'], ['recent', 'Doar date recente']])}
 <ul class="rows">${mortgageList(D.mortgage)}</ul><p class="js-empty" hidden>Nicio ofertă nu se potrivește filtrelor.</p></section>
 <section class="block wrap prose"><h2>Cum citești o ofertă de credit ipotecar</h2>
@@ -376,7 +384,7 @@ ${toolbar([['fixedRate', 'Dobândă fixă'], ['fixedYears', 'Ani fix'], ['dae', 
 <li><b>IRCC</b> e calculat trimestrial de BNR. Când crește, crește și rata ta în perioada variabilă.</li>
 <li><b>Creditele verzi</b>, pentru locuințe în clasa energetică A, au de regulă dobânzi mai mici.</li>
 <li><b>Avansul</b> pornește de la 15% pentru prima locuință. Unele bănci cer 25% dacă deții deja o locuință.</li>
-<li><b>Rambursarea anticipată</b> a creditelor ipotecare nu are comision, indiferent de tipul dobânzii.</li></ul></section>
+<li><b>Rambursarea anticipată</b> e gratuită la dobânda variabilă. În perioada cu dobândă fixă, banca poate cere o compensație prevăzută în contract; verifică înainte de semnare. Detalii în <a href="${href('ghiduri/rambursare-anticipata')}">ghidul despre rambursarea anticipată</a>.</li></ul></section>
 <div class="wrap">${ad('bottom')}</div>
 <section class="block wrap"><h2>Întrebări frecvente</h2>${faqBlock(p.faq)}</section>
 ${related(p.slug)}`,
@@ -524,20 +532,49 @@ ${benChips(lounges)}<ul class="cgrid">${cardList(lounges)}</ul><p class="js-empt
   }
 ];
 
+// ---------------- ghiduri ----------------
+const ARTS = require(path.join(SRC, 'articles.js'))({ D, P, bestP, bestRate, bestM, pc, lei, fmt, pmt, esc, href: s => href(s), ad, daeOf, YEAR });
+const artCard = a => `<a href="${href('ghiduri/' + a.slug)}"><span class="tag">${esc(a.tag)} · ${a.minutes} min</span><b>${esc(a.h1.replace(/<[^>]+>/g, ''))}</b><span>${esc(a.blurb)}</span></a>`;
+PAGES.splice(PAGES.findIndex(p => p.slug === 'despre-si-metodologie'), 0,
+  {
+    slug: 'ghiduri/', top: true, nav: false, navLabel: 'Ghiduri', crumb: 'Ghiduri financiare',
+    title: `Ghiduri financiare: credite, refinanțare și carduri (${YEAR})`,
+    desc: 'Ghiduri practice despre credite de nevoi personale, refinanțare, DAE, gradul de îndatorare, Biroul de Credit și carduri de credit. Cu calcule actualizate.',
+    h1Plain: 'Ghiduri financiare',
+    body: p => `<section class="hero solo"><div class="wrap grid2"><div><span class="tag"><b>✎</b> Ghiduri</span><h1>Ghiduri financiare: <em class="it">decizii mai bune, bani economisiți</em></h1><p class="lead">Explicații clare despre credite, refinanțare și carduri, cu exemple calculate pe ofertele actuale ale băncilor.</p></div></div></section>
+<div class="wrap">${ad('top')}</div>
+<section class="block wrap"><div class="related guides">${ARTS.map(artCard).join('')}</div></section>
+${related('ghiduri/')}`
+  },
+  ...ARTS.map(a => ({
+    slug: 'ghiduri/' + a.slug, top: false, nav: false, navLabel: a.h1.replace(/<[^>]+>/g, '').replace(/:.*$/, ''), article: a,
+    crumbs: [['Acasă', ''], ['Ghiduri', 'ghiduri/'], [a.h1.replace(/<[^>]+>/g, '').replace(/:.*$/, ''), 'ghiduri/' + a.slug]],
+    title: a.title, desc: a.desc, h1Plain: a.h1.replace(/<[^>]+>/g, ''), faq: a.faq,
+    body: p => `<article class="wrap"><header class="hero solo" style="padding-bottom:10px"><span class="tag"><b>${esc(a.tag)}</b> · ${a.minutes} min de citit · actualizat ${esc(updTxt.replace(/ la .*$/, ''))}</span><h1>${a.h1}</h1></header>
+<div class="prose art">${a.body()}</div>
+${ad('bottom')}
+<section class="block"><h2>Întrebări frecvente</h2>${faqBlock(a.faq)}</section>
+<section class="block"><h2>Alte ghiduri</h2><div class="related guides">${ARTS.filter(x => x.slug !== a.slug).slice(0, 3).map(artCard).join('')}</div></section></article>
+${related(p.slug)}`
+  }))
+);
+
 // ---------------- write ----------------
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
 for (const f of ['style.css', 'app.js']) fs.copyFileSync(path.join(SRC, 'assets', f), path.join(OUT, 'assets', f));
 fs.writeFileSync(path.join(OUT, 'assets', 'favicon.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="6" width="52" height="52" rx="16" fill="#b8a4f4" transform="rotate(-8 32 32)"/><text x="32" y="42" font-family="Arial Black,Arial" font-weight="900" font-size="28" text-anchor="middle" fill="#1c1530">%</text></svg>`);
 for (const p of PAGES) {
+  PFX = PREVIEW ? '../'.repeat(p.slug.split('/').length - 1) : '';
   let html = shell(p, p.body(p));
   if (/id="(sim|refi)"/.test(html)) html = html.replace('</main>', `<script type="application/json" id="offers-json">${offersJson}</script>\n</main>`);
-  const file = p.slug === '' ? 'index.html' : p.slug + '.html';
+  const file = fileOf(p.slug);
+  fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
   fs.writeFileSync(path.join(OUT, file), html.replace(/\n{2,}/g, '\n'));
 }
 const lastmod = D.updatedAt.slice(0, 10);
 const indexable = PAGES.filter(p => !p.noindex);
-fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexable.map(p => `  <url><loc>${canon(p.slug)}</loc><lastmod>${lastmod}</lastmod><changefreq>daily</changefreq><priority>${p.slug === '' ? '1.0' : p.nav ? '0.9' : '0.4'}</priority></url>`).join('\n')}\n</urlset>\n`);
+fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexable.map(p => `  <url><loc>${canon(p.slug)}</loc><lastmod>${lastmod}</lastmod><changefreq>daily</changefreq><priority>${p.slug === '' ? '1.0' : p.nav ? '0.9' : p.article ? '0.7' : '0.4'}</priority></url>`).join('\n')}\n</urlset>\n`);
 fs.writeFileSync(path.join(OUT, 'robots.txt'), PREVIEW ? 'User-agent: *\nDisallow: /\n' : `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 if (adsOn) fs.writeFileSync(path.join(OUT, 'ads.txt'), `google.com, ${AD.client.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`);
 // Cloudflare Pages / Netlify: pagina 404 și redirect .html -> URL curat sunt automate pe ambele platforme

@@ -182,3 +182,20 @@ footer ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 footer a{text-decoration:none}footer a:hover{color:var(--ink)}
 .disc{margin-top:24px;font-size:12.5px;line-height:1.55}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ghiduri */
+.fcols{grid-template-columns:2fr repeat(4,1fr)}
+@media(max-width:900px){.fcols{grid-template-columns:1fr 1fr}}
+.art{max-width:760px;font-size:17px}
+.art .lead{font-size:19px;color:var(--ink)}
+.art h2{font-size:clamp(24px,3vw,32px)}
+.art ul,.art ol{padding-left:22px}.art li{margin:6px 0}
+.art a:not(.btn){color:var(--lav-deep);font-weight:600}
+.art .note{font-size:13.5px;color:var(--muted);margin-top:8px}
+.art .btn{margin-top:8px}
+.dwrap{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
+.dtable{border-collapse:collapse;width:100%;font-size:14.5px;min-width:480px}
+.dtable th{background:var(--lav-3);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2);padding:10px 12px}
+.dtable td{padding:10px 12px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.dtable tr:nth-child(even) td{background:color-mix(in srgb,var(--lav-3) 40%,transparent)}
+.related.guides a .tag{display:block;font-size:10.5px;margin-bottom:6px;color:var(--lav-deep)}
